@@ -16,6 +16,7 @@ var _LogoImagen = require("./LogoImagen");
 var _MenuPortada = require("./MenuPortada");
 var _Navbar = require("./Navbar");
 var _Otro = require("./Otro");
+var _Pago = require("./Pago");
 var _Permiso = require("./Permiso");
 var _PermisoRolRecurso = require("./PermisoRolRecurso");
 var _PortadaOtro = require("./PortadaOtro");
@@ -52,6 +53,7 @@ function initModels(sequelize) {
   var MenuPortada = _MenuPortada(sequelize, DataTypes);
   var Navbar = _Navbar(sequelize, DataTypes);
   var Otro = _Otro(sequelize, DataTypes);
+  var Pago = _Pago(sequelize, DataTypes);
   var Permiso = _Permiso(sequelize, DataTypes);
   var PermisoRolRecurso = _PermisoRolRecurso(sequelize, DataTypes);
   var PortadaOtro = _PortadaOtro(sequelize, DataTypes);
@@ -70,6 +72,8 @@ function initModels(sequelize) {
   var Rol = _Rol(sequelize, DataTypes);
   var Usuario = _Usuario(sequelize, DataTypes);
 
+  Pago.belongsTo(Empresa, { as: "CodigoEmpresa_Empresa", foreignKey: "CodigoEmpresa"});
+  Empresa.hasMany(Pago, { as: "Pagos", foreignKey: "CodigoEmpresa"});
   Usuario.belongsTo(Empresa, { as: "CodigoEmpresa_Empresa", foreignKey: "CodigoEmpresa"});
   Empresa.hasMany(Usuario, { as: "Usuarios", foreignKey: "CodigoEmpresa"});
   Carrusel.belongsTo(Empresa, { as: "CodigoEmpresa_Empresa", foreignKey: "CodigoEmpresa"});
@@ -149,6 +153,7 @@ function initModels(sequelize) {
     MenuPortada,
     Navbar,
     Otro,
+    Pago,
     Permiso,
     PermisoRolRecurso,
     PortadaOtro,

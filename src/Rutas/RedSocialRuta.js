@@ -13,5 +13,4 @@ Router.post(`/${Modelo}/crear`, VerificarToken,VerificarPermisos('Crear',Tabla),
 Router.put(`/${Modelo}/editar/:Codigo`, VerificarToken,VerificarPermisos('Editar',Tabla), Editar);
 Router.delete(`/${Modelo}/eliminar/:Codigo`, VerificarToken,VerificarPermisos('Eliminar',Tabla),  Eliminar);
 
-
 module.exports = Router;

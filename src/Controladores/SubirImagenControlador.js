@@ -21,12 +21,13 @@ const Servicios = {
   LogoImagen: require("../Servicios/LogoImagenServicio"),
   LoginPortada: require("../Servicios/LoginPortadaServicio"),
   RedSocialImagen: require("../Servicios/RedSocialImagenServicio"),
+  Pago: require("../Servicios/PagoServicio")
 };
 
 const SubirImagen = async (req, res) => {
   let RutaRelativa = "";
   let UrlPublica = "";
-  let ImagenAnterior = ""; // para eliminar si todo sale bien
+  let ImagenAnterior = ""; 
   let EstaEditando = false;
 
   try {
