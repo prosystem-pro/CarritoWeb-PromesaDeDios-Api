@@ -16,8 +16,8 @@ Router.get(`/${Modelo}/buscar/:TipoBusqueda/:ValorBusqueda`, VerificarToken, Ver
 Router.post(`/${Modelo}/crear`, VerificarToken, VerificarPermisos('Crear', Tabla), Crear);
 Router.put(`/${Modelo}/editar`, VerificarToken, VerificarPermisos('Editar', Tabla), Editar);
 Router.delete(`/${Modelo}/eliminar-por-rol/:CodigoRol`, VerificarToken, VerificarPermisos('EliminarRol', Tabla), EliminarPorRol);
-Router.delete(`/${Modelo}/eliminar-por-rol-recurso/:CodigoRol/:CodigoRecurso`, VerificarToken, VerificarPermisos('EliminarRecurso', Tabla), EliminarPorRolRecurso);
-Router.delete(`/${Modelo}/eliminar-por-rol-recurso-permiso/:CodigoRol/:CodigoRecurso/:CodigoPermiso`, VerificarToken, VerificarPermisos('EliminarRolRecurso', Tabla), EliminarPorRolRecursoPermiso);
+Router.delete(`/${Modelo}/eliminar-por-rol-recurso/:CodigoRol/:CodigoRecurso`, VerificarToken, VerificarPermisos('EliminarRolRecurso', Tabla), EliminarPorRolRecurso);
+Router.delete(`/${Modelo}/eliminar-por-rol-recurso-permiso/:CodigoRol/:CodigoRecurso/:CodigoPermiso`, VerificarToken, VerificarPermisos('EliminarRolRecursoPermiso', Tabla), EliminarPorRolRecursoPermiso);
 Router.get(`/${Modelo}/filtrar-roles`, VerificarToken, VerificarPermisos('VerRol', Tabla), FiltrarRoles);
 Router.get(`/${Modelo}/filtrar-recursos/:CodigoRol`, VerificarToken, VerificarPermisos('VerRecurso', Tabla), FiltrarRecursos);
 Router.get(`/${Modelo}-filtrar-permisos/:CodigoRol/:CodigoRecurso`, VerificarToken, VerificarPermisos('VerRolRecurso', Tabla), FiltrarPermisos);
