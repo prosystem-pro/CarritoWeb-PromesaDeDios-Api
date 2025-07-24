@@ -64,5 +64,15 @@ const Eliminar = async (req, res) => {
     return ManejarError(error, res, 'Error al eliminar el registro');
   }
 };
+const ObtenerResumenGeneralPagos = async (req, res) => {
+  try {
+    const { anio } = req.params;
+    const Objeto = await Servicio.ObtenerResumenGeneralPagos(anio);
+    return res.json(Objeto || {});
+  } catch (error) {
+    return ManejarError(error, res, 'Error al obtener el resumen general de pagos');
+  }
+};
 
-module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar };
+
+module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar, ObtenerResumenGeneralPagos };
