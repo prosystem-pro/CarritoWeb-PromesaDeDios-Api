@@ -1,11 +1,11 @@
 const { Almacenamiento } = require("../Configuracion/FirebaseConfiguracion");
 const { v4: GenerarUuid } = require("uuid");
-
+const { LanzarError } = require("../Utilidades/ErrorControladores");
 
 const SubirImagenAlmacenamiento = (Archivo, CarpetaPrincipal, SubCarpeta) => {
   return new Promise((Resolver, Rechazar) => {
     if (!CarpetaPrincipal || !SubCarpeta) {
-      return Rechazar(new Error("No se enviaron las carpetas necesarias"));
+      return Rechazar(LanzarError('ParametrosInvalidos', 'No se enviaron las carpetas necesarias'));
     }
 
     const NombreArchivo = `${CarpetaPrincipal}/${SubCarpeta}/${GenerarUuid()}-${Archivo.originalname}`;
@@ -16,13 +16,16 @@ const SubirImagenAlmacenamiento = (Archivo, CarpetaPrincipal, SubCarpeta) => {
     });
 
     Flujo.on("error", () => {
-      Rechazar(new Error("Error al subir la imagen"));
+      Rechazar(LanzarError('ErrorSubida', 'Error al subir la imagen'));
     });
 
     Flujo.on("finish", async () => {
-      await ArchivoSubido.makePublic();
-      // Resolver(`/${NombreArchivo}`); 
-      Resolver(`/${NombreArchivo.replace(`${CarpetaPrincipal}/`, '')}`);
+      try {
+        await ArchivoSubido.makePublic();
+        Resolver(`/${NombreArchivo.replace(`${CarpetaPrincipal}/`, '')}`);
+      } catch (error) {
+        Rechazar(LanzarError('ErrorPublicar', 'Error al hacer pública la imagen'));
+      }
     });
 
     Flujo.end(Archivo.buffer);

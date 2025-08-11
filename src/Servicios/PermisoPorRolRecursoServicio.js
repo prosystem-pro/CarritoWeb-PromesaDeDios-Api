@@ -1,24 +1,24 @@
 const { PermisoRolRecursoModelo, PermisoModelo, RecursoModelo } = require('../Relaciones/Relaciones');
 const ManejarError = require('../Utilidades/ErrorServicios');
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
 const ObtenerPermisosPorRolYRecurso = async (CodigoRol, Recurso) => {
   try {
-    console.log(` Consultando permisos en la BD para Rol: ${CodigoRol}, Recurso: ${Recurso}`);
 
     const Datos = await PermisoRolRecursoModelo.findAll({
-      where: { CodigoRol, Estatus: 1 }, 
+      where: { CodigoRol, Estatus: 1 },
       include: [
         {
           model: PermisoModelo,
           as: 'Permiso',
-          attributes: ['NombrePermiso','Estatus'],
+          attributes: ['NombrePermiso', 'Estatus'],
           where: { Estatus: 1 }
         },
         {
           model: RecursoModelo,
           as: 'Recurso',
-          attributes: ['NombreRecurso','Estatus'],
-          where: { NombreRecurso: Recurso, Estatus: 1 } 
+          attributes: ['NombreRecurso', 'Estatus'],
+          where: { NombreRecurso: Recurso, Estatus: 1 }
         }
       ],
       attributes: [],
@@ -26,18 +26,14 @@ const ObtenerPermisosPorRolYRecurso = async (CodigoRol, Recurso) => {
       nest: true
     });
 
-    console.log("Datos obtenidos de la BD:", Datos);
-
     if (!Datos || Datos.length === 0) {
-      console.log(" ERROR: No se encontraron permisos en la BD.");
-      return [];
+      LanzarError(`No se encontraron permisos para el rol ${CodigoRol} y recurso ${Recurso}`, 404, 'Alerta');
     }
 
-    const datosFiltrados = Datos.filter(Permiso => Permiso.Permiso.Estatus === 1 && Permiso.Recurso.Estatus === 1);
-    
-    console.log(" Permisos filtrados:", datosFiltrados.map(Permiso => Permiso.Permiso.NombrePermiso));
+    const datosFiltrados = Datos.filter(p => p.Permiso.Estatus === 1 && p.Recurso.Estatus === 1);
 
-    return datosFiltrados.map(Permiso => Permiso.Permiso.NombrePermiso);
+    return datosFiltrados.map(p => p.Permiso.NombrePermiso);
+
   } catch (error) {
     ManejarError(error, 'Error al obtener permisos');
   }

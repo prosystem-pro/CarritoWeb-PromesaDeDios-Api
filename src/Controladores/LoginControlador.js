@@ -1,18 +1,13 @@
 const { IniciarSesionServicio } = require('../Servicios/LoginServicio');
+const ResponderExito = require('../Utilidades/RespuestaExitosaControlador');
+const ManejarError = require('../Utilidades/ErrorControladores');
 
 const IniciarSesion = async (req, res) => {
   try {
-    const { NombreUsuario, Clave } = req.body;
-
-    if (!NombreUsuario || !Clave) {
-      return res.status(400).json({ error: "Nombre de usuario y contraseña son requeridos" });
-    }
-
-    const Resultado = await IniciarSesionServicio(NombreUsuario, Clave);
-    res.json(Resultado);
+    const Resultado = await IniciarSesionServicio(req.body.NombreUsuario, req.body.Clave);
+    return ResponderExito(res, 'Inicio de sesión exitoso', Resultado);
   } catch (error) {
-    console.error("Error en iniciar sesión:", error);
-    res.status(401).json({ error: error.message || "Error en el servidor" });
+    return ManejarError(error, res, 'Error al iniciar sesión', 401);
   }
 };
 

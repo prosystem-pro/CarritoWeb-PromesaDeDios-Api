@@ -1,12 +1,13 @@
 const { GenerarModelos } = require("../Servicios/GenerarModeloTypescriptServicio");
 const ManejarError = require("../Utilidades/ErrorControladores");
+const ResponderExito = require("../Utilidades/RespuestaExitosaControlador");
 
 const GenerarModelosControlador = async (req, res) => {
   try {
     const ModelosTS = await GenerarModelos();
-    res.status(200).json(ModelosTS);
+    return ResponderExito(res, 'Modelos generados exitosamente.', ModelosTS);
   } catch (error) {
-    ManejarError(error, res, "Error al generar modelos");
+    return ManejarError(error, res, "Error al generar modelos");
   }
 };
 

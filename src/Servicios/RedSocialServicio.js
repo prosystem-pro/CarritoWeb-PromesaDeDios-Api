@@ -6,11 +6,12 @@ const ReporteRedSocial = require('../Modelos/ReporteRedSocial')(BaseDatos, Seque
 const { RedSocial, RedSocialImagen } = require('../Relaciones/Relaciones');
 const { EliminarImagen } = require('../Servicios/EliminarImagenServicio');
 const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen');
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
 const { Op } = require('sequelize');
 
 const NombreModelo = 'NombreRedSocial';
-const CodigoModelo = 'CodigoRedSocial'
+const CodigoModelo = 'CodigoRedSocial';
 
 const Listado = async (ubicacionFiltro = '') => {
   const Registros = await RedSocial.findAll({
@@ -31,55 +32,52 @@ const Listado = async (ubicacionFiltro = '') => {
     }]
   });
 
-  const Resultado = Registros.map(r => {
+  return Registros.map(r => {
     const Dato = r.toJSON();
-
-    if (Dato.Imagenes && Array.isArray(Dato.Imagenes)) {
+    if (Array.isArray(Dato.Imagenes)) {
       Dato.Imagenes = Dato.Imagenes.map(img => {
         img.UrlImagen = ConstruirUrlImagen(img.UrlImagen);
         return img;
       });
     }
-
     return Dato;
   });
-
-  return Resultado;
 };
 
-
 const ObtenerPorCodigo = async (Codigo) => {
-  return await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Registro) LanzarError('Registro no encontrado', 404);
+  return Registro;
 };
 
 const Buscar = async (TipoBusqueda, ValorBusqueda) => {
   switch (parseInt(TipoBusqueda)) {
     case 1:
       return await Modelo.findAll({
-        where: { [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` }, Estatus: [1, 2] }
+        where: {
+          [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` },
+          Estatus: [1, 2]
+        }
       });
     case 2:
-      return await Modelo.findAll({ where: { Estatus: [1, 2] }, order: [[NombreModelo, 'ASC']] });
+      return await Modelo.findAll({
+        where: { Estatus: [1, 2] },
+        order: [[NombreModelo, 'ASC']]
+      });
     default:
-      return null;
+      LanzarError('Tipo de búsqueda inválido', 400);
   }
 };
 
 const Crear = async (Datos) => {
-
   const total = await Modelo.count({ where: { Estatus: [1, 2] } });
-
-  if (total >= 8) {
-    throw new Error('No se pueden crear más de 8 redes sociales activas.');
-  }
-
+  if (total >= 8) LanzarError('No se pueden crear más de 8 registros activos.', 400);
   return await Modelo.create(Datos);
 };
 
-
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado para editar', 404);
 
   const estatusAntes = Objeto.Estatus;
   const estatusNuevo = Datos.Estatus;
@@ -96,54 +94,49 @@ const Editar = async (Codigo, Datos) => {
   return Objeto;
 };
 
-
 const Eliminar = async (Codigo) => {
-  try {
-    await ReporteRedSocial.destroy({
-      where: { CodigoRedSocial: Codigo }
-    });
+  // Eliminar registros relacionados
+  await ReporteRedSocial.destroy({ where: { CodigoRedSocial: Codigo } });
 
-    const Objeto = await RedSocial.findOne({
-      where: { [CodigoModelo]: Codigo },
-      include: [{
-        model: RedSocialImagen,
-        as: 'Imagenes',
-        where: { Estatus: 1 },
-        required: false
-      }]
-    });
+  const Objeto = await RedSocial.findOne({
+    where: { [CodigoModelo]: Codigo },
+    include: [{
+      model: RedSocialImagen,
+      as: 'Imagenes',
+      where: { Estatus: 1 },
+      required: false
+    }]
+  });
 
-    if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado para eliminar', 404);
 
-    if (Objeto.Imagenes?.length > 0) {
-      for (const imagen of Objeto.Imagenes) {
+  // Eliminar imágenes relacionadas
+  if (Array.isArray(Objeto.Imagenes)) {
+    for (const imagen of Objeto.Imagenes) {
+      if (imagen.UrlImagen) {
+        const urlConstruida = ConstruirUrlImagen(imagen.UrlImagen);
         try {
-          if (imagen.UrlImagen) {
-            const urlConstruida = ConstruirUrlImagen(imagen.UrlImagen);
-            await EliminarImagen(urlConstruida);
-          }
-          await imagen.destroy();
+          await EliminarImagen(urlConstruida);
         } catch (err) {
-          console.error(`Error al eliminar imagen con código ${imagen.CodigoRedSocialImagen}:`, err);
+          console.error(`Error al eliminar imagen ${imagen.CodigoRedSocialImagen}:`, err);
         }
       }
+      await imagen.destroy();
     }
-
-    if (Objeto.UrlImagen) {
-      const urlConstruidaPrincipal = ConstruirUrlImagen(Objeto.UrlImagen);
-      await EliminarImagen(urlConstruidaPrincipal);
-    }
-
-    await Objeto.destroy();
-
-    return Objeto;
-  } catch (error) {
-    console.error('Error en eliminación de red social:', error);
-    throw error;
   }
+
+  // Eliminar imagen principal si existe
+  if (Objeto.UrlImagen) {
+    const urlConstruidaPrincipal = ConstruirUrlImagen(Objeto.UrlImagen);
+    try {
+      await EliminarImagen(urlConstruidaPrincipal);
+    } catch (err) {
+      console.error('Error al eliminar imagen principal:', err);
+    }
+  }
+
+  await Objeto.destroy();
+  return Objeto;
 };
-
-
-
 
 module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar };

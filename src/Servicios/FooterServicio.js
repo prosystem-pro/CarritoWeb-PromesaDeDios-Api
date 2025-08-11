@@ -3,26 +3,24 @@ const BaseDatos = require('../BaseDatos/ConexionBaseDatos');
 const Modelo = require('../Modelos/Footer')(BaseDatos, Sequelize.DataTypes);
 const { EliminarImagen } = require('../Servicios/EliminarImagenServicio');
 const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen');
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
-const NombreModelo= 'TextoInicio';
-const CodigoModelo= 'CodigoFooter'
+const NombreModelo = 'TextoInicio';
+const CodigoModelo = 'CodigoFooter';
 
 const Listado = async () => {
   const Registros = await Modelo.findAll({ where: { Estatus: [1, 2] } });
 
-  const Resultado = Registros.map(r => {
+  return Registros.map(r => {
     const Dato = r.toJSON();
     Dato.UrlLogo = ConstruirUrlImagen(Dato.UrlLogo);
     return Dato;
   });
-
-  return Resultado;
 };
 
 const ObtenerPorCodigo = async (Codigo) => {
   const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-
-  if (!Registro) return null;
+  if (!Registro) LanzarError('Registro no encontrado', 404);
 
   const Dato = Registro.toJSON();
   Dato.UrlLogo = ConstruirUrlImagen(Dato.UrlLogo);
@@ -34,12 +32,18 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
   switch (parseInt(TipoBusqueda)) {
     case 1:
       return await Modelo.findAll({
-        where: { [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` }, Estatus:  [1,2] }
+        where: {
+          [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` },
+          Estatus: [1, 2]
+        }
       });
     case 2:
-      return await Modelo.findAll({ where: { Estatus:  [1,2] }, order: [[NombreModelo, 'ASC']] });
+      return await Modelo.findAll({
+        where: { Estatus: [1, 2] },
+        order: [[NombreModelo, 'ASC']]
+      });
     default:
-      return null;
+      LanzarError('Tipo de búsqueda no válido', 400);
   }
 };
 
@@ -49,26 +53,26 @@ const Crear = async (Datos) => {
 
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado para editar', 404);
+
   await Objeto.update(Datos);
   return Objeto;
 };
 
 const Eliminar = async (Codigo) => {
-  try {
-    const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-    if (!Objeto) return null;
+  const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Objeto) LanzarError('Registro no encontrado para eliminar', 404);
 
+  if (Objeto.UrlLogo) {
     const UrlImagenConstruida = ConstruirUrlImagen(Objeto.UrlLogo);
-    await EliminarImagen(UrlImagenConstruida);
-
-    await Objeto.destroy();
-
-    return Objeto;
-  } catch (error) {
-    throw error;
+    try {
+      await EliminarImagen(UrlImagenConstruida);
+    } catch {
+    }
   }
-};
 
+  await Objeto.destroy();
+  return Objeto;
+}
 
 module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar };

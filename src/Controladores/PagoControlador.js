@@ -1,23 +1,21 @@
 const Servicio = require('../Servicios/PagoServicio');
 const ManejarError = require('../Utilidades/ErrorControladores');
+const ResponderExito = require('../Utilidades/RespuestaExitosaControlador');
 
 const Listado = async (req, res) => {
   try {
     const { anio } = req.params;
-    const Objeto = await Servicio.Listado(anio);
-    return res.json(Objeto || []);
+    const Resultado = await Servicio.Listado(anio);
+    return ResponderExito(res, 'Listado de pagos por año obtenido', Resultado);
   } catch (error) {
     return ManejarError(error, res, 'Error al obtener registros por año');
   }
 };
 
-
 const ObtenerPorCodigo = async (req, res) => {
   try {
-    const { Codigo } = req.params;
-    const Objeto = await Servicio.ObtenerPorCodigo(Codigo);
-    if (Objeto) return res.json(Objeto);
-    return res.status(404).json({ message: 'Registro no encontrado' });
+    const Resultado = await Servicio.ObtenerPorCodigo(req.params.Codigo);
+    return ResponderExito(res, 'Pago obtenido', Resultado);
   } catch (error) {
     return ManejarError(error, res, 'Error al obtener el registro');
   }
@@ -25,10 +23,8 @@ const ObtenerPorCodigo = async (req, res) => {
 
 const Buscar = async (req, res) => {
   try {
-    const { TipoBusqueda, ValorBusqueda } = req.params;
-    const Objeto = await Servicio.Buscar(TipoBusqueda, ValorBusqueda);
-    if (Objeto && Objeto.length > 0) return res.json(Objeto);
-    return res.status(404).json({ message: 'No se encontraron registros' });
+    const Resultado = await Servicio.Buscar(req.params.TipoBusqueda, req.params.ValorBusqueda);
+    return ResponderExito(res, 'Búsqueda de pagos exitosa', Resultado);
   } catch (error) {
     return ManejarError(error, res, 'Error al realizar la búsqueda');
   }
@@ -37,7 +33,7 @@ const Buscar = async (req, res) => {
 const Crear = async (req, res) => {
   try {
     await Servicio.Crear(req.body);
-    return res.status(201).json({ message: 'Se guardó el registro exitosamente.' });
+    return ResponderExito(res, 'Pago guardado exitosamente', null, 201);
   } catch (error) {
     return ManejarError(error, res, 'Error al crear el registro');
   }
@@ -45,10 +41,8 @@ const Crear = async (req, res) => {
 
 const Editar = async (req, res) => {
   try {
-    const { Codigo } = req.params;
-    const Objeto = await Servicio.Editar(Codigo, req.body);
-    if (!Objeto) return res.status(404).json({ message: 'Registro no encontrado' });
-    return res.status(200).json({ message: 'Se actualizó el registro exitosamente.' });
+    await Servicio.Editar(req.params.Codigo, req.body);
+    return ResponderExito(res, 'Pago actualizado exitosamente');
   } catch (error) {
     return ManejarError(error, res, 'Error al actualizar el registro');
   }
@@ -56,23 +50,21 @@ const Editar = async (req, res) => {
 
 const Eliminar = async (req, res) => {
   try {
-    const { Codigo } = req.params;
-    const Objeto = await Servicio.Eliminar(Codigo);
-    if (!Objeto) return res.status(404).json({ message: 'Registro no encontrado' });
-    return res.status(200).json({ message: 'Registro eliminado exitosamente' });
+    await Servicio.Eliminar(req.params.Codigo);
+    return ResponderExito(res, 'Pago eliminado exitosamente');
   } catch (error) {
     return ManejarError(error, res, 'Error al eliminar el registro');
   }
 };
+
 const ObtenerResumenGeneralPagos = async (req, res) => {
   try {
     const { anio } = req.params;
-    const Objeto = await Servicio.ObtenerResumenGeneralPagos(anio);
-    return res.json(Objeto || {});
+    const Resultado = await Servicio.ObtenerResumenGeneralPagos(anio);
+    return ResponderExito(res, 'Resumen general de pagos obtenido', Resultado);
   } catch (error) {
     return ManejarError(error, res, 'Error al obtener el resumen general de pagos');
   }
 };
-
 
 module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar, ObtenerResumenGeneralPagos };

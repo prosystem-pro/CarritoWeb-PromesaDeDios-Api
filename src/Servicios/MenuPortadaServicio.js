@@ -3,36 +3,46 @@ const BaseDatos = require('../BaseDatos/ConexionBaseDatos');
 const Modelo = require('../Modelos/MenuPortada')(BaseDatos, Sequelize.DataTypes);
 const { EliminarImagen } = require('../Servicios/EliminarImagenServicio');
 const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen');
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
-const NombreModelo= 'TituloMenu';
-const CodigoModelo= 'CodigoMenuPortada'
+const NombreModelo = 'TituloMenu';
+const CodigoModelo = 'CodigoMenuPortada';
 
 const Listado = async () => {
   const Registros = await Modelo.findAll({ where: { Estatus: [1, 2] } });
 
-  const Resultado = Registros.map(r => {
+  return Registros.map(r => {
     const Dato = r.toJSON();
 
-    Dato.UrlImagenPortadaIzquierdo = ConstruirUrlImagen(Dato.UrlImagenPortadaIzquierdo);
-    Dato.UrlImagenPortadaDerecho = ConstruirUrlImagen(Dato.UrlImagenPortadaDerecho);
-    Dato.UrlImagenPresentacion = ConstruirUrlImagen(Dato.UrlImagenPresentacion);
+    if (Dato.UrlImagenPortadaIzquierdo) {
+      Dato.UrlImagenPortadaIzquierdo = ConstruirUrlImagen(Dato.UrlImagenPortadaIzquierdo);
+    }
+    if (Dato.UrlImagenPortadaDerecho) {
+      Dato.UrlImagenPortadaDerecho = ConstruirUrlImagen(Dato.UrlImagenPortadaDerecho);
+    }
+    if (Dato.UrlImagenPresentacion) {
+      Dato.UrlImagenPresentacion = ConstruirUrlImagen(Dato.UrlImagenPresentacion);
+    }
 
     return Dato;
   });
-
-  return Resultado;
 };
 
 const ObtenerPorCodigo = async (Codigo) => {
   const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-
-  if (!Registro) return null;
+  if (!Registro) LanzarError('Registro no encontrado', 404);
 
   const Dato = Registro.toJSON();
 
-  Dato.UrlImagenPortadaIzquierdo = ConstruirUrlImagen(Dato.UrlImagenPortadaIzquierdo);
-  Dato.UrlImagenPortadaDerecho = ConstruirUrlImagen(Dato.UrlImagenPortadaDerecho);
-  Dato.UrlImagenPresentacion = ConstruirUrlImagen(Dato.UrlImagenPresentacion);
+  if (Dato.UrlImagenPortadaIzquierdo) {
+    Dato.UrlImagenPortadaIzquierdo = ConstruirUrlImagen(Dato.UrlImagenPortadaIzquierdo);
+  }
+  if (Dato.UrlImagenPortadaDerecho) {
+    Dato.UrlImagenPortadaDerecho = ConstruirUrlImagen(Dato.UrlImagenPortadaDerecho);
+  }
+  if (Dato.UrlImagenPresentacion) {
+    Dato.UrlImagenPresentacion = ConstruirUrlImagen(Dato.UrlImagenPresentacion);
+  }
 
   return Dato;
 };
@@ -41,12 +51,18 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
   switch (parseInt(TipoBusqueda)) {
     case 1:
       return await Modelo.findAll({
-        where: { [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` }, Estatus:  [1,2] }
+        where: {
+          [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` },
+          Estatus: [1, 2],
+        },
       });
     case 2:
-      return await Modelo.findAll({ where: { Estatus:  [1,2] }, order: [[NombreModelo, 'ASC']] });
+      return await Modelo.findAll({
+        where: { Estatus: [1, 2] },
+        order: [[NombreModelo, 'ASC']],
+      });
     default:
-      return null;
+      LanzarError('Tipo de búsqueda no válido', 400);
   }
 };
 
@@ -56,44 +72,32 @@ const Crear = async (Datos) => {
 
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado para actualizar', 404);
+
   await Objeto.update(Datos);
   return Objeto;
 };
 
 const Eliminar = async (Codigo) => {
-  try {
-    const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-    if (!Objeto) return null;
+  const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Objeto) LanzarError('Registro no encontrado para eliminar', 404);
 
-    const CamposImagen = [
-      'UrlImagenNavbar',
-      'UrlImagenPortadaIzquierdo',
-      'UrlImagenPortadaDerecho',
-      'UrlImagenMenu',
-      'UrlImagenPresentacion'
-    ];
+  const CamposImagen = [
+    'UrlImagenPortadaIzquierdo',
+    'UrlImagenPortadaDerecho',
+    'UrlImagenPresentacion',
+  ];
 
-    for (const campo of CamposImagen) {
-      const urlOriginal = Objeto[campo];
-      if (urlOriginal) {
-        const urlConstruida = ConstruirUrlImagen(urlOriginal);
-        try {
-          await EliminarImagen(urlConstruida);
-        } catch (error) {
-          console.warn(`No se pudo eliminar la imagen del campo "${campo}": ${error.message}`);
-        }
-      }
+  for (const campo of CamposImagen) {
+    const urlOriginal = Objeto[campo];
+    if (urlOriginal) {
+      const urlConstruida = ConstruirUrlImagen(urlOriginal);
+      await EliminarImagen(urlConstruida);
     }
-
-    await Objeto.destroy();
-    return Objeto;
-
-  } catch (error) {
-    console.error("Error en la función Eliminar:", error.message);
-    throw error;
   }
-};
 
+  await Objeto.destroy();
+  return Objeto;
+};
 
 module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar };

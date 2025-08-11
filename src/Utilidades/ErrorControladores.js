@@ -1,5 +1,8 @@
-const ManejarError = (error, res, MensajeError, statusCode = 500) => {
-  const esDesarrollo = process.env.ALERTA_ERRORES === 'Desarrollo';
+const ManejarError = (error, res, mensajeError = 'Error inesperado', statusCodeDefault = 500) => {
+  const Desarrollo = process.env.ALERTA_ERRORES === 'Desarrollo';
+
+  const statusCode = error.statusCode || statusCodeDefault;
+  const tipo = error.tipo || (statusCode >= 500 ? 'Error' : 'Alerta');
 
   const DetallesError = {
     message: error.message,
@@ -13,13 +16,12 @@ const ManejarError = (error, res, MensajeError, statusCode = 500) => {
 
   const respuesta = {
     success: false,
-    message: MensajeError,
-    error: esDesarrollo ? DetallesError : { message: error.message }
+    tipo,
+    message: mensajeError,
+    ...(Desarrollo && { error: DetallesError }) 
   };
 
   return res.status(statusCode).json(respuesta);
 };
 
 module.exports = ManejarError;
-
-  

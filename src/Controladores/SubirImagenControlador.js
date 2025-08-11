@@ -1,7 +1,7 @@
 const ManejarError = require('../Utilidades/ErrorControladores');
+const ResponderExito = require('../Utilidades/RespuestaExitosaControlador');
 const { SubirImagenAlmacenamiento } = require("../Servicios/SubirImagenServicio");
 const { EliminarImagen } = require("../Servicios/EliminarImagenServicio");
-const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen');
 const { Almacenamiento } = require("../Configuracion/FirebaseConfiguracion");
 
 const Servicios = {
@@ -32,7 +32,7 @@ const SubirImagen = async (req, res) => {
 
   try {
     if (!req.file) {
-      return res.status(400).json({ Error: "No se envió ninguna imagen" });
+      return ManejarError({ message: "No se envió ninguna imagen", statusCode: 400 }, res, "Error al procesar la imagen");
     }
 
     const {
@@ -46,12 +46,12 @@ const SubirImagen = async (req, res) => {
     } = req.body;
 
     if (!CarpetaPrincipal || !SubCarpeta) {
-      return res.status(400).json({ Error: "Las carpetas son obligatorias" });
+      return ManejarError({ message: "Las carpetas son obligatorias", statusCode: 400 }, res, "Error al procesar la imagen");
     }
 
     const Servicio = Servicios[SubCarpeta];
     if (!Servicio) {
-      return res.status(400).json({ Error: `No hay servicio para la carpeta ${SubCarpeta}` });
+      return ManejarError({ message: `No hay servicio para la carpeta ${SubCarpeta}`, statusCode: 400 }, res, "Error al procesar la imagen");
     }
 
     const [archivos] = await Almacenamiento.getFiles({
@@ -65,9 +65,7 @@ const SubirImagen = async (req, res) => {
     }
 
     if (totalBytes >= 950 * 1024 * 1024) {
-      return res.status(400).json({
-        Alerta: "El límite de almacenamiento ha sido alcanzado. No se puede subir más imágenes."
-      });
+      return ManejarError({ message: "El límite de almacenamiento ha sido alcanzado. No se puede subir más imágenes.", statusCode: 400 }, res, "Error al procesar la imagen");
     }
 
     let CuentaComoNuevaImagen = false;
@@ -78,7 +76,7 @@ const SubirImagen = async (req, res) => {
       const EntidadExistente = await Servicio.ObtenerPorCodigo(CodigoPropio);
 
       if (!EntidadExistente) {
-        return res.status(400).json({ Alerta: "No se encontró el registro a editar, se alcanzó el límite máximo de imágenes permitidas" });
+        return ManejarError({ message: "No se encontró el registro a editar, se alcanzó el límite máximo de imágenes permitidas", statusCode: 400 }, res, "Error al procesar la imagen");
       }
 
       const ImagenActual = EntidadExistente[NombreCampoImagen];
@@ -90,15 +88,7 @@ const SubirImagen = async (req, res) => {
     }
 
     if (CuentaComoNuevaImagen && archivos.length >= 250) {
-      return res.status(400).json({
-        Alerta: "Se alcanzó el límite máximo de imágenes permitidas"
-      });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({
-        Alerta: "Debes subir una imagen para continuar."
-      });
+      return ManejarError({ message: "Se alcanzó el límite máximo de imágenes permitidas", statusCode: 400 }, res, "Error al procesar la imagen");
     }
 
     RutaRelativa = await SubirImagenAlmacenamiento(req.file, CarpetaPrincipal, SubCarpeta);
@@ -110,7 +100,6 @@ const SubirImagen = async (req, res) => {
     if (CodigoVinculado && !CodigoPropio) {
       Datos[CampoVinculado] = CodigoVinculado;
       Datos[NombreCampoImagen] = RutaRelativa;
-      // throw new Error("Error intencional en edición para prueba"); // para probar el catch
       Entidad = await Servicio.Crear(Datos);
 
     } else if (!CodigoVinculado && CodigoPropio) {
@@ -123,7 +112,6 @@ const SubirImagen = async (req, res) => {
       }
 
       Datos[NombreCampoImagen] = RutaRelativa;
-      // throw new Error("Error intencional en edición para prueba"); // para probar el catch
       Entidad = await Servicio.Editar(CodigoPropio, Datos);
 
     } else if (CodigoVinculado && CodigoPropio) {
@@ -138,12 +126,10 @@ const SubirImagen = async (req, res) => {
       }
 
       Datos[NombreCampoImagen] = RutaRelativa;
-      // throw new Error("Error intencional en edición para prueba"); // para probar el catch
       Entidad = await Servicio.Editar(CodigoPropio, Datos);
 
     } else {
       Datos[NombreCampoImagen] = RutaRelativa;
-      // throw new Error("Error intencional en edición para prueba"); // para probar el catch
       Entidad = await Servicio.Crear(Datos);
     }
 
@@ -153,15 +139,7 @@ const SubirImagen = async (req, res) => {
       console.log("Imagen anterior eliminada correctamente:", ImagenAnterior);
     }
 
-    // if (Entidad && Entidad[NombreCampoImagen]) {
-    //   Entidad[NombreCampoImagen] = ConstruirUrlImagen(Entidad[NombreCampoImagen]);
-    // }
-
-    return res.status(201).json({
-      Mensaje: `${SubCarpeta} procesado con éxito`,
-      Entidad,
-      UrlImagenPublica: UrlPublica
-    });
+    return ResponderExito(res, `${SubCarpeta} procesado con éxito`, { Entidad, UrlImagenPublica: UrlPublica }, 201);
 
   } catch (error) {
     if (UrlPublica) {
@@ -172,7 +150,6 @@ const SubirImagen = async (req, res) => {
         console.error("Error eliminando imagen subida tras fallo:", errEliminar.message);
       }
     }
-
     return ManejarError(error, res, "Error al procesar la imagen");
   }
 };

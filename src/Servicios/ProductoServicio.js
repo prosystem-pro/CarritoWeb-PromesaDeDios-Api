@@ -4,13 +4,13 @@ const Modelo = require('../Modelos/Producto')(BaseDatos, Sequelize.DataTypes);
 const ReporteProducto = require('../Modelos/ReporteProducto')(BaseDatos, Sequelize.DataTypes);
 const { EliminarImagen } = require('../Servicios/EliminarImagenServicio');
 const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen'); 
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
-const NombreModelo= 'NombreProducto';
-const CodigoModelo= 'CodigoProducto'
+const NombreModelo = 'NombreProducto';
+const CodigoModelo = 'CodigoProducto';
 
 const Listado = async (Usuario) => {
   let estatusPermitido = [1];
-
   if (Usuario && (Usuario.NombreRol === 'Administrador' || Usuario.SuperAdmin === 1)) {
     estatusPermitido = [1, 2];
   }
@@ -19,19 +19,16 @@ const Listado = async (Usuario) => {
     where: { Estatus: estatusPermitido }
   });
 
-  const Resultado = Registros.map(r => {
+  return Registros.map(r => {
     const Dato = r.toJSON();
-    Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen); 
+    Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
     return Dato;
   });
-
-  return Resultado;
 };
 
 const ObtenerPorCodigo = async (Codigo) => {
   const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-
-  if (!Registro) return null;
+  if (!Registro) LanzarError('Registro no encontrado', 404);
 
   const Dato = Registro.toJSON();
   Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
@@ -58,7 +55,7 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
       });
       break;
     default:
-      return null;
+      LanzarError('Tipo de búsqueda inválido', 400);
   }
 
   return Registros.map(r => {
@@ -69,42 +66,38 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
 };
 
 const Crear = async (Datos) => {
+  if (!Datos || !Datos[NombreModelo]) LanzarError('Datos inválidos para crear registro', 400);
   return await Modelo.create(Datos);
 };
 
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado para editar', 404);
+
   await Objeto.update(Datos);
   return Objeto;
 };
 
 const Eliminar = async (Codigo) => {
-  try {
-    const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-    if (!Objeto) return null;
+  const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Objeto) LanzarError('Registro no encontrado para eliminar', 404);
 
-    await ReporteProducto.destroy({
-      where: { CodigoProducto: Codigo }
-    });
+  await ReporteProducto.destroy({ where: { CodigoProducto: Codigo } });
 
-    const UrlImagenOriginal = Objeto.UrlImagen;
-    if (UrlImagenOriginal) {
-      const UrlImagenConstruida = ConstruirUrlImagen(UrlImagenOriginal);
+  const UrlImagenOriginal = Objeto.UrlImagen;
+  if (UrlImagenOriginal) {
+    const UrlImagenConstruida = ConstruirUrlImagen(UrlImagenOriginal);
+    try {
       await EliminarImagen(UrlImagenConstruida);
+    } catch (error) {
+      console.warn(`No se pudo eliminar la imagen: ${error.message}`);
     }
-
-    await Objeto.destroy();
-
-    return Objeto;
-  } catch (error) {
-    console.error('Error en eliminación en cola:', error);
-    throw error;
   }
+
+  await Objeto.destroy();
+
+  return Objeto;
 };
-
-
-
 
 const ListadoPorClasificacion = async (Codigo) => {
   const Registros = await Modelo.findAll({
@@ -114,13 +107,11 @@ const ListadoPorClasificacion = async (Codigo) => {
     }
   });
 
-  const Resultado = Registros.map(r => {
+  return Registros.map(r => {
     const Dato = r.toJSON();
-    Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen); 
+    Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
     return Dato;
   });
-
-  return Resultado;
 };
 
 module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar, ListadoPorClasificacion };

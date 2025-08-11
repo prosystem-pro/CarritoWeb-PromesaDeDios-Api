@@ -1,6 +1,7 @@
 const Sequelize = require('sequelize');
 const BaseDatos = require('../BaseDatos/ConexionBaseDatos');
 const Modelo = require('../Modelos/Empresa')(BaseDatos, Sequelize.DataTypes);
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
 const NombreModelo= 'NombreEmpresa';
 const CodigoModelo= 'CodigoEmpresa'
@@ -10,7 +11,9 @@ const Listado = async () => {
 };
 
 const ObtenerPorCodigo = async (Codigo) => {
-  return await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Objeto) LanzarError('Registro no encontrado', 404);
+  return Objeto;
 };
 
 const Buscar = async (TipoBusqueda, ValorBusqueda) => {
@@ -22,26 +25,29 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
     case 2:
       return await Modelo.findAll({ where: { Estatus: [1,2] }, order: [[NombreModelo, 'ASC']] });
     default:
-      return null;
+      LanzarError('Tipo de búsqueda inválido', 400);
   }
 };
 
 const Crear = async (Datos) => {
+  const yaExiste = await Modelo.findOne({ where: { [CodigoModelo]: Datos[CodigoModelo] } });
+  if (yaExiste) LanzarError('Ya existe un registro con ese código', 409);
   return await Modelo.create(Datos);
 };
 
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado', 404);
   await Objeto.update(Datos);
   return Objeto;
 };
 
 const Eliminar = async (Codigo) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado', 404);
   await Objeto.destroy();
   return Objeto;
 };
+
 
 module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar };

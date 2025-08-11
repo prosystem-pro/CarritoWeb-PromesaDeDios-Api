@@ -4,9 +4,10 @@ const Modelo = require('../Modelos/Pago')(BaseDatos, Sequelize.DataTypes);
 const { EliminarImagen } = require('../Servicios/EliminarImagenServicio');
 const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen');
 const { DateTime } = require('luxon');
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
 const NombreModelo = 'NumeroBoleta';
-const CodigoModelo = 'CodigoPago'
+const CodigoModelo = 'CodigoPago';
 
 const Listado = async (Anio) => {
   const Registros = await Modelo.findAll({
@@ -18,91 +19,101 @@ const Listado = async (Anio) => {
       )
     }
   });
-  const Resultado = Registros.map((r) => {
+
+  return Registros.map((r) => {
     const Dato = r.toJSON();
+
     if (Dato.FechaVencimientoPago) {
-      const original = Dato.FechaVencimientoPago instanceof Date
-        ? Dato.FechaVencimientoPago
-        : new Date(Dato.FechaVencimientoPago);
-      const yyyy = original.getUTCFullYear();
-      const mm = original.getUTCMonth();
-      const dd = original.getUTCDate();
-      const nuevaFecha = new Date(Date.UTC(yyyy, mm, dd + 1));
-      const nuevoYyyy = nuevaFecha.getUTCFullYear();
-      const nuevoMm = String(nuevaFecha.getUTCMonth() + 1).padStart(2, '0');
-      const nuevoDd = String(nuevaFecha.getUTCDate()).padStart(2, '0');
-      Dato.FechaVencimientoPago = `${nuevoYyyy}-${nuevoMm}-${nuevoDd}`;
+      const fecha = DateTime.fromJSDate(new Date(Dato.FechaVencimientoPago), { zone: 'utc' }).plus({ days: 1 });
+      Dato.FechaVencimientoPago = fecha.toISODate(); // YYYY-MM-DD
     }
-    Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
+
+    if (Dato.UrlComprobante) {
+      Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
+    }
+
     return Dato;
   });
-  return Resultado;
 };
 
 const ObtenerPorCodigo = async (Codigo) => {
   const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-
-  if (!Registro) return null;
+  if (!Registro) LanzarError('Registro no encontrado', 404);
 
   const Dato = Registro.toJSON();
-  Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
+
+  if (Dato.UrlComprobante) {
+    Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
+  }
 
   return Dato;
 };
-
 
 const Buscar = async (TipoBusqueda, ValorBusqueda) => {
   switch (parseInt(TipoBusqueda)) {
     case 1:
       return await Modelo.findAll({
-        where: { [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` }, Estatus: [1, 2] }
+        where: {
+          [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` },
+          Estatus: [1, 2]
+        }
       });
     case 2:
-      return await Modelo.findAll({ where: { Estatus: [1, 2] }, order: [[NombreModelo, 'ASC']] });
+      return await Modelo.findAll({
+        where: { Estatus: [1, 2] },
+        order: [[NombreModelo, 'ASC']]
+      });
     default:
-      return null;
+      LanzarError('Tipo de búsqueda no válido', 400);
   }
 };
 
 const Crear = async (Datos) => {
-  return await Modelo.create(Datos);
+  const Objeto = await Modelo.create(Datos);
+  const Dato = Objeto.toJSON();
+
+  if (Dato.UrlComprobante) {
+    Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
+  }
+
+  return Dato;
 };
 
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
+  if (!Objeto) LanzarError('Registro no encontrado para actualizar', 404);
+
   await Objeto.update(Datos);
-  return Objeto;
+
+  const Dato = Objeto.toJSON();
+
+  if (Dato.UrlComprobante) {
+    Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
+  }
+
+  return Dato;
 };
 
 const Eliminar = async (Codigo) => {
-  try {
-    const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-    if (!Objeto) return null;
+  const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Objeto) LanzarError('Registro no encontrado para eliminar', 404);
 
-    const CamposImagen = [
-      'UrlComprobante',
-    ];
+  const CamposImagen = ['UrlComprobante'];
 
-    for (const campo of CamposImagen) {
-      const urlOriginal = Objeto[campo];
-      if (urlOriginal) {
-        const urlConstruida = ConstruirUrlImagen(urlOriginal);
-        try {
-          await EliminarImagen(urlConstruida);
-        } catch (error) {
-          console.warn(`No se pudo eliminar la imagen del campo "${campo}": ${error.message}`);
-        }
+  for (const campo of CamposImagen) {
+    const urlOriginal = Objeto[campo];
+    if (urlOriginal) {
+      const urlConstruida = ConstruirUrlImagen(urlOriginal);
+      try {
+        await EliminarImagen(urlConstruida);
+      } catch {
+        // Ignorar error para no bloquear eliminación
       }
     }
-
-    await Objeto.destroy();
-    return Objeto;
-
-  } catch (error) {
-    console.error("Error en la función Eliminar:", error.message);
-    throw error;
   }
+
+  await Objeto.destroy();
+  return Objeto;
 };
 
 const ObtenerResumenGeneralPagos = async (Anio) => {
@@ -184,7 +195,7 @@ const ObtenerResumenGeneralPagos = async (Anio) => {
     }
   }
 
-  const resultadoFinal = {
+  return {
     CantidadPagos: parseInt(r.CantidadPagos) || 0,
     PagosConComprobante: parseInt(r.PagosConComprobante) || 0,
     PagosSinComprobante: parseInt(r.PagosSinComprobante) || 0,
@@ -194,8 +205,6 @@ const ObtenerResumenGeneralPagos = async (Anio) => {
     PagosConTiempo: parseInt(r.PagosConTiempo) || 0,
     PagosConTiempo_DetalleDias: diasConTiempo
   };
-
-  return resultadoFinal;
 };
 
 

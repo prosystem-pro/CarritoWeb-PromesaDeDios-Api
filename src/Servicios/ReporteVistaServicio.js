@@ -2,48 +2,43 @@ const Sequelize = require('sequelize');
 const BaseDatos = require('../BaseDatos/ConexionBaseDatos');
 const Modelo = require('../Modelos/ReporteVista')(BaseDatos, Sequelize.DataTypes);
 const { DateTime } = require('luxon');
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
-const NombreModelo= 'NombreDiagrama';
-const CodigoModelo= 'CodigoReporteVista'
+const NombreModelo = 'NombreDiagrama';
+const CodigoModelo = 'CodigoReporteVista';
 
 const ObtenerResumen = async (Anio, Mes) => {
   const Registros = await Modelo.findAll({ where: { Estatus: [1, 2] } });
 
-  const RegistrosConFechaLocal = Registros.map(Registro => {
-    const RegistroPlano = Registro.toJSON();
-    if (RegistroPlano.Fecha) {
-      RegistroPlano.Fecha = DateTime
-        .fromJSDate(RegistroPlano.Fecha)
+  const RegistrosConFechaLocal = Registros.map((Registro) => {
+    const Plano = Registro.toJSON();
+    if (Plano.Fecha) {
+      Plano.Fecha = DateTime
+        .fromJSDate(Plano.Fecha)
         .setZone('America/Guatemala');
     }
-    return RegistroPlano;
+    return Plano;
   });
-  console.log('Registros con Fecha Local:', RegistrosConFechaLocal);
+
   const RegistrosFiltrados = (Anio && Mes)
-    ? RegistrosConFechaLocal.filter(Registro =>
-        Registro.Fecha.year === parseInt(Anio) &&
-        Registro.Fecha.month === parseInt(Mes)
+    ? RegistrosConFechaLocal.filter((r) =>
+        r.Fecha.year === parseInt(Anio) && r.Fecha.month === parseInt(Mes)
       )
     : RegistrosConFechaLocal;
 
-const ConteoPorDia = {};
-for (let i = 1; i <= 31; i++) {
-  const DiaStr = i.toString().padStart(2, '0');
-  ConteoPorDia[DiaStr] = 0;
-}
+  const ConteoPorDia = {};
+  for (let i = 1; i <= 31; i++) {
+    ConteoPorDia[i.toString().padStart(2, '0')] = 0;
+  }
 
-// Contar cuántos registros hay en cada día
-RegistrosFiltrados.forEach(Registro => {
-  const Dia = Registro.Fecha.day.toString().padStart(2, '0');
-  ConteoPorDia[Dia]++;
-});
+  RegistrosFiltrados.forEach((r) => {
+    const Dia = r.Fecha.day.toString().padStart(2, '0');
+    ConteoPorDia[Dia]++;
+  });
 
-// Formatear conteo por día en array ordenado
-const ConteoPorDiaOrdenadoArray = Object.entries(ConteoPorDia)
-  .map(([Dia, Total]) => ({ dia: Dia, total: Total }))
-  .sort((a, b) => parseInt(a.dia) - parseInt(b.dia));
-
-
+  const ConteoPorDiaOrdenadoArray = Object.entries(ConteoPorDia)
+    .map(([dia, total]) => ({ dia, total }))
+    .sort((a, b) => parseInt(a.dia) - parseInt(b.dia));
 
   const MesesNombres = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -51,47 +46,52 @@ const ConteoPorDiaOrdenadoArray = Object.entries(ConteoPorDia)
   ];
 
   const RegistrosDelAnio = Anio
-    ? RegistrosConFechaLocal.filter(Registro =>
-        Registro.Fecha.year === parseInt(Anio)
-      )
+    ? RegistrosConFechaLocal.filter((r) => r.Fecha.year === parseInt(Anio))
     : [];
 
   const ConteoPorMes = new Array(12).fill(0);
-
-  RegistrosDelAnio.forEach(Registro => {
-    const MesIndex = Registro.Fecha.month - 1;
-    ConteoPorMes[MesIndex]++;
+  RegistrosDelAnio.forEach((r) => {
+    const mesIndex = r.Fecha.month - 1;
+    ConteoPorMes[mesIndex]++;
   });
 
-  const ConteoPorMesFormateado = ConteoPorMes.map((Total, Index) => ({
-    mes: (Index + 1).toString().padStart(2, '0'),
-    nombre: MesesNombres[Index],
-    total: Total
+  const ConteoPorMesFormateado = ConteoPorMes.map((total, i) => ({
+    mes: (i + 1).toString().padStart(2, '0'),
+    nombre: MesesNombres[i],
+    total,
   }));
 
   return {
     SolicitudTotalMes: RegistrosFiltrados.length,
     SolicitudesDiaMes: ConteoPorDiaOrdenadoArray,
-    SolicitudesPorMes: ConteoPorMesFormateado
+    SolicitudesPorMes: ConteoPorMesFormateado,
   };
 };
 
 const Listado = async () => {
-  return await Modelo.findAll({ where: { Estatus:  [1,2] } });
+  return await Modelo.findAll({ where: { Estatus: [1, 2] } });
 };
 
 const ObtenerPorCodigo = async (Codigo) => {
-  return await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Registro) throw LanzarError('Registro no encontrado');
+  return Registro;
 };
 
 const Buscar = async (TipoBusqueda, ValorBusqueda) => {
   switch (parseInt(TipoBusqueda)) {
     case 1:
       return await Modelo.findAll({
-        where: { [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` }, Estatus:  [1,2] }
+        where: {
+          [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` },
+          Estatus: [1, 2]
+        }
       });
     case 2:
-      return await Modelo.findAll({ where: { Estatus:  [1,2] }, order: [[NombreModelo, 'ASC']] });
+      return await Modelo.findAll({
+        where: { Estatus: [1, 2] },
+        order: [[NombreModelo, 'ASC']]
+      });
     default:
       return null;
   }
@@ -102,7 +102,7 @@ const Crear = async (Datos) => {
   const ListaDatos = EsArray ? Datos : [Datos];
 
   const FechaActual = DateTime.now().setZone('America/Guatemala').toISO();
-  const DatosConFecha = ListaDatos.map(dato => ({
+  const DatosConFecha = ListaDatos.map((dato) => ({
     ...dato,
     Fecha: FechaActual,
   }));
@@ -113,17 +113,17 @@ const Crear = async (Datos) => {
 };
 
 const Editar = async (Codigo, Datos) => {
-  const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
-  await Objeto.update(Datos);
-  return Objeto;
+  const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Registro) throw LanzarError('Registro no encontrado');
+  await Registro.update(Datos);
+  return Registro;
 };
 
 const Eliminar = async (Codigo) => {
-  const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
-  if (!Objeto) return null;
-  await Objeto.destroy();
-  return Objeto;
+  const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
+  if (!Registro) throw LanzarError('Registro no encontrado');
+  await Registro.destroy();
+  return Registro;
 };
 
 module.exports = { Listado, ObtenerPorCodigo, Buscar, Crear, Editar, Eliminar, ObtenerResumen };

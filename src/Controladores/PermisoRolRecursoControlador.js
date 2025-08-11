@@ -1,13 +1,11 @@
 const Servicio = require('../Servicios/PermisoRolRecursoServicio');
 const ManejarError = require('../Utilidades/ErrorControladores');
+const ResponderExito = require('../Utilidades/RespuestaExitosaControlador');
 
 const Listado = async (req, res) => {
   try {
-    const Objeto = await Servicio.Listado();
-    if (Objeto && Objeto.length > 0) {
-      return res.json(Objeto);
-    }
-    return res.json(Objeto || []);
+    const Resultado = await Servicio.Listado();
+    return ResponderExito(res, 'Listado de permisos rol-recurso obtenido', Resultado);
   } catch (error) {
     return ManejarError(error, res, 'Error al obtener los registros');
   }
@@ -16,9 +14,8 @@ const Listado = async (req, res) => {
 const ObtenerPorCodigo = async (req, res) => {
   try {
     const { CodigoRol, CodigoPermiso, CodigoRecurso } = req.params;
-    const Objeto = await Servicio.ObtenerPorCodigo(CodigoRol, CodigoPermiso, CodigoRecurso);
-    if (Objeto) return res.json(Objeto);
-    return res.status(404).json({ message: 'Registro no encontrado' });
+    const Resultado = await Servicio.ObtenerPorCodigo(CodigoRol, CodigoPermiso, CodigoRecurso);
+    return ResponderExito(res, 'Registro obtenido', Resultado);
   } catch (error) {
     return ManejarError(error, res, 'Error al obtener el registro');
   }
@@ -27,9 +24,8 @@ const ObtenerPorCodigo = async (req, res) => {
 const Buscar = async (req, res) => {
   try {
     const { TipoBusqueda, ValorBusqueda } = req.params;
-    const Objeto = await Servicio.Buscar(TipoBusqueda, ValorBusqueda);
-    if (Objeto && Objeto.length > 0) return res.json(Objeto);
-    return res.status(404).json({ message: 'No se encontraron registros' });
+    const Resultado = await Servicio.Buscar(TipoBusqueda, ValorBusqueda);
+    return ResponderExito(res, 'Búsqueda realizada con éxito', Resultado);
   } catch (error) {
     return ManejarError(error, res, 'Error al realizar la búsqueda');
   }
@@ -38,7 +34,7 @@ const Buscar = async (req, res) => {
 const Crear = async (req, res) => {
   try {
     await Servicio.Crear(req.body);
-    return res.status(201).json({ message: 'Se guardó el registro exitosamente.' });
+    return ResponderExito(res, 'Registro creado exitosamente', null, 201);
   } catch (error) {
     return ManejarError(error, res, 'Error al crear el registro');
   }
@@ -46,31 +42,18 @@ const Crear = async (req, res) => {
 
 const Editar = async (req, res) => {
   try {
-    const Datos = req.body;
-    const Objeto = await Servicio.Editar(Datos);
-
-    if (!Objeto) {
-      return res.status(404).json({ message: 'Registro no encontrado' });
-    }
-
-    return res.status(200).json({ message: 'Se actualizó el registro exitosamente.' });
+    await Servicio.Editar(req.body);
+    return ResponderExito(res, 'Registro actualizado exitosamente');
   } catch (error) {
     return ManejarError(error, res, 'Error al actualizar el registro');
   }
 };
 
-
 const EliminarPorRol = async (req, res) => {
   try {
     const { CodigoRol } = req.params;
-
     const resultado = await Servicio.EliminarPorRol(CodigoRol);
-
-    if (!resultado) {
-      return res.status(404).json({ message: 'No se encontraron registros para eliminar con ese CodigoRol' });
-    }
-
-    return res.status(200).json({ message: resultado.mensaje });
+    return ResponderExito(res, resultado.mensaje || 'Registros eliminados exitosamente');
   } catch (error) {
     return ManejarError(error, res, 'Error al eliminar los registros del rol');
   }
@@ -79,101 +62,66 @@ const EliminarPorRol = async (req, res) => {
 const EliminarPorRolRecurso = async (req, res) => {
   try {
     const { CodigoRol, CodigoRecurso } = req.params;
-
     const cantidad = await Servicio.EliminarPorRolRecurso(CodigoRol, CodigoRecurso);
-
-    if (cantidad === 0) {
-      return res.status(404).json({
-        Titulo: 'Alerta',
-        Alerta: `No se encontraron registros con el rol ${CodigoRol} y recurso ${CodigoRecurso}.`
-      });
-    }
-
-    return res.status(200).json({
-      Titulo: 'Éxito',
-      Exito: `Se eliminaron ${cantidad} registros para el rol ${CodigoRol} y recurso ${CodigoRecurso}.`
-    });
-
+    return ResponderExito(res, `Se eliminaron ${cantidad} registros para el rol ${CodigoRol} y recurso ${CodigoRecurso}`);
   } catch (error) {
     return ManejarError(error, res, 'Error al eliminar los registros por rol y recurso');
   }
 };
 
 const EliminarPorRolRecursoPermiso = async (req, res) => {
-  const { CodigoRol, CodigoRecurso, CodigoPermiso } = req.params;
-
   try {
+    const { CodigoRol, CodigoRecurso, CodigoPermiso } = req.params;
     const cantidadEliminada = await Servicio.EliminarPorPermisoRolRecurso(CodigoRol, CodigoRecurso, CodigoPermiso);
-
-    if (cantidadEliminada === 0) {
-      return res.status(404).json({
-        Alerta: `No se encontró un registro con rol ${CodigoRol}, recurso ${CodigoRecurso} y permiso ${CodigoPermiso}.`
-      });
-    }
-
-    return res.status(200).json({
-      Exito: `Registro eliminado correctamente con rol ${CodigoRol}, recurso ${CodigoRecurso} y permiso ${CodigoPermiso}.`
-    });
+    return ResponderExito(res, `Registro eliminado correctamente con rol ${CodigoRol}, recurso ${CodigoRecurso} y permiso ${CodigoPermiso}`);
   } catch (error) {
-    console.error('Error en controlador al eliminar registro específico:', error);
-    return res.status(500).json({
-      Error: 'Ocurrió un error al intentar eliminar el registro.',
-      Detalles: error.message
-    });
+    return ManejarError(error, res, 'Error al eliminar el registro por rol, recurso y permiso');
   }
 };
 
 const FiltrarRoles = async (req, res) => {
   try {
     const roles = await Servicio.FiltrarRoles();
-    res.json(roles);
+    return ResponderExito(res, 'Roles filtrados correctamente', roles);
   } catch (error) {
-    ManejarError(error, res, 'Error al filtrar roles con recursos incompletos');
+    return ManejarError(error, res, 'Error al filtrar roles con recursos incompletos');
   }
 };
 
 const FiltrarRecursos = async (req, res) => {
-  const { CodigoRol } = req.params;
-
-  if (isNaN(CodigoRol)) {
-    return res.status(400).json({ message: "Código de rol inválido" });
-  }
-
   try {
-    const recursosDisponibles = await Servicio.FiltrarRecursos(CodigoRol);
-    res.json(recursosDisponibles);
+    const { CodigoRol } = req.params;
+    const recursos = await Servicio.FiltrarRecursos(CodigoRol);
+    return ResponderExito(res, 'Recursos filtrados correctamente', recursos);
   } catch (error) {
-    ManejarError(error, res, 'Error al filtrar recursos');
+    return ManejarError(error, res, 'Error al filtrar recursos');
   }
 };
 
 const FiltrarPermisos = async (req, res) => {
-  const { CodigoRol, CodigoRecurso } = req.params;
-
-  if (isNaN(CodigoRol) || isNaN(CodigoRecurso)) {
-    return res.status(400).json({ message: "Código de rol o recurso inválido" });
-  }
-
   try {
-    const permisosDisponibles = await Servicio.FiltrarPermisos(CodigoRol, CodigoRecurso);
-    res.json(permisosDisponibles);
+    const { CodigoRol, CodigoRecurso } = req.params;
+    const permisos = await Servicio.FiltrarPermisos(CodigoRol, CodigoRecurso);
+    return ResponderExito(res, 'Permisos filtrados correctamente', permisos);
   } catch (error) {
-    ManejarError(error, res, 'Error al filtrar permisos');
+    return ManejarError(error, res, 'Error al filtrar permisos');
   }
 };
+
 const ObtenerResumenPermisos = async (req, res) => {
   try {
     const permisosUnicos = await Servicio.ObtenerResumenPermisosUnicos();
-    return res.json({ permisos: permisosUnicos });
+    return ResponderExito(res, 'Resumen de permisos obtenido', { permisos: permisosUnicos });
   } catch (error) {
     return ManejarError(error, res, 'Error al obtener resumen de permisos');
   }
 };
 
-module.exports = { Listado, ObtenerPorCodigo, 
-  Buscar, Crear, 
-  Editar, FiltrarRoles, 
-  FiltrarRecursos, FiltrarPermisos, 
+module.exports = {
+  Listado, ObtenerPorCodigo,
+  Buscar, Crear,
+  Editar, FiltrarRoles,
+  FiltrarRecursos, FiltrarPermisos,
   EliminarPorRol, EliminarPorRolRecurso,
   EliminarPorRolRecursoPermiso,
   ObtenerResumenPermisos
