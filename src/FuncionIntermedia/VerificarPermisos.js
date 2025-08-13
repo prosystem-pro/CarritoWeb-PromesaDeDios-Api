@@ -1,5 +1,6 @@
 const { ObtenerPermisosPorRolYRecurso } = require('../Servicios/PermisoPorRolRecursoServicio');
 const ManejarError = require('../Utilidades/ErrorControladores');
+const { LanzarError } = require('../Utilidades/ErrorServicios');
 
 const VerificarPermisos = (Permiso, Recurso) => {
   return async (req, res, next) => {
@@ -14,11 +15,11 @@ const VerificarPermisos = (Permiso, Recurso) => {
         return res.status(403).json({ error: 'No autorizado, rol no proporcionado' });
       }
 
-      const Permisos = await ObtenerPermisosPorRolYRecurso(CodigoRol, Recurso);
+      const Permisos = await ObtenerPermisosPorRolYRecurso(CodigoRol, Recurso, Permiso);
 
-      if (!Permisos.includes(Permiso)) {
-        return res.status(403).json({ error: 'No tienes permiso para realizar esta acción' });
-      }
+      // if (!Permisos.includes(Permiso)) {
+      //   LanzarError('No tienes permiso para realizar esta acción.', 403, 'Alerta');
+      // }
 
       next();
     } catch (error) {
