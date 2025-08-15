@@ -56,7 +56,14 @@ const Editar = async (Codigo, Datos) => {
   if (!Objeto) LanzarError('Registro no encontrado para editar', 404);
 
   await Objeto.update(Datos);
-  return Objeto;
+
+  const Dato = Objeto.toJSON();
+
+  if (Dato.UrlLogo) {
+    Dato.UrlLogo = ConstruirUrlImagen(Dato.UrlLogo);
+  }
+
+  return Dato;
 };
 
 const Eliminar = async (Codigo) => {

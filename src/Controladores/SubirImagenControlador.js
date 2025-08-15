@@ -136,7 +136,6 @@ const SubirImagen = async (req, res) => {
     // === SI LLEGA HASTA AQUÍ, LA EDICIÓN FUE EXITOSA Y PODEMOS BORRAR LA ANTERIOR ===
     if (EstaEditando && ImagenAnterior) {
       await EliminarImagen(ImagenAnterior);
-      console.log("Imagen anterior eliminada correctamente:", ImagenAnterior);
     }
 
     return ResponderExito(res, `${SubCarpeta} procesado con éxito`, { Entidad, UrlImagenPublica: UrlPublica }, 201);

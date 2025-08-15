@@ -7,7 +7,7 @@ const ObtenerPermisosPorRolYRecurso = async (CodigoRol, NombreRecurso, NombrePer
   const permisoData = await PermisoModelo.findOne({ where: { NombrePermiso } });
 
   if (!recursoData || !permisoData) {
-    LanzarError('El registro no existe.', 404, 'Alerta');
+    LanzarError('El permiso no existe.', 404, 'Alerta');
   }
 
   // Buscar la relación exacta en PermisoRolRecurso
@@ -20,11 +20,11 @@ const ObtenerPermisosPorRolYRecurso = async (CodigoRol, NombreRecurso, NombrePer
   });
 
   if (!relacionData) {
-    LanzarError('El registro no existe.', 404, 'Alerta');
+    LanzarError('El permiso no existe.', 404, 'Alerta');
   }
 
   if (relacionData.Estatus !== 1) {
-    LanzarError('Registro inactivo.', 403, 'Alerta');
+    LanzarError('Permiso inactivo.', 403, 'Alerta');
   }
 
   // Validar que el rol esté activo

@@ -47,7 +47,7 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
 };
 
 const Crear = async (Datos) => {
-  if (!Datos || !Datos[NombreModelo]) LanzarError('Datos inválidos para crear registro', 400);
+  if (!Datos) LanzarError('Datos inválidos para crear registro', 400);
   return await Modelo.create(Datos);
 };
 
