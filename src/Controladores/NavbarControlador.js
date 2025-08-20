@@ -31,8 +31,8 @@ const Buscar = async (req, res) => {
 
 const Crear = async (req, res) => {
   try {
-    await Servicio.Crear(req.body);
-    return ResponderExito(res, 'Registro creado exitosamente', null, 201);
+    const entidad = await Servicio.Crear(req.body);
+    return ResponderExito(res, 'Registro creado exitosamente', entidad, 201);
   } catch (error) {
     return ManejarError(error, res, 'Error al crear el registro');
   }

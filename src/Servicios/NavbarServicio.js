@@ -55,7 +55,14 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
 };
 
 const Crear = async (Datos) => {
-  return await Modelo.create(Datos);
+  const Nuevo = await Modelo.create(Datos);
+  const Dato = Nuevo.toJSON();
+
+  Dato.UrlLogo = ConstruirUrlImagen(Dato.UrlLogo);
+  Dato.UrlImagenCarrito = ConstruirUrlImagen(Dato.UrlImagenCarrito);
+  Dato.UrlImagenBuscador = ConstruirUrlImagen(Dato.UrlImagenBuscador);
+
+  return Dato;
 };
 
 const Editar = async (Codigo, Datos) => {
@@ -63,7 +70,14 @@ const Editar = async (Codigo, Datos) => {
   if (!Objeto) LanzarError('Registro no encontrado para actualizar', 404);
 
   await Objeto.update(Datos);
-  return Objeto;
+
+  const Dato = Objeto.toJSON();
+
+  Dato.UrlLogo = ConstruirUrlImagen(Dato.UrlLogo);
+  Dato.UrlImagenCarrito = ConstruirUrlImagen(Dato.UrlImagenCarrito);
+  Dato.UrlImagenBuscador = ConstruirUrlImagen(Dato.UrlImagenBuscador);
+
+  return Dato;
 };
 
 const Eliminar = async (Codigo) => {
