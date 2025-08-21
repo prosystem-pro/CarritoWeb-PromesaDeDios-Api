@@ -3,7 +3,7 @@ const BaseDatos = require('../BaseDatos/ConexionBaseDatos');
 const Modelo = require('../Modelos/Producto')(BaseDatos, Sequelize.DataTypes);
 const ReporteProducto = require('../Modelos/ReporteProducto')(BaseDatos, Sequelize.DataTypes);
 const { EliminarImagen } = require('../Servicios/EliminarImagenServicio');
-const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen'); 
+const { ConstruirUrlImagen } = require('../Utilidades/ConstruirUrlImagen');
 const { LanzarError } = require('../Utilidades/ErrorServicios');
 
 const NombreModelo = 'NombreProducto';
@@ -66,8 +66,37 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
 };
 
 const Crear = async (Datos) => {
-  if (!Datos || !Datos[NombreModelo]) LanzarError('Datos inválidos para crear registro', 400);
-  return await Modelo.create(Datos);
+  if (!Datos) LanzarError('Datos inválidos para crear registro', 400);
+
+  if (!Datos.NombreProducto || Datos.NombreProducto.trim() === '') {
+    let contador = 1;
+    let nombreGenerado = `Producto por defecto ${contador}`;
+    let existe = true;
+
+    while (existe) {
+      const registroExistente = await Modelo.findOne({
+        where: { NombreProducto: nombreGenerado }
+      });
+
+      if (registroExistente) {
+        contador++;
+        nombreGenerado = `Producto por defecto ${contador}`;
+      } else {
+        existe = false;
+      }
+    }
+
+    Datos.NombreProducto = nombreGenerado;
+  }
+
+  const Nuevo = await Modelo.create(Datos);
+  const Dato = Nuevo.toJSON();
+
+  if (Dato.UrlImagen) {
+    Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
+  }
+
+  return Dato;
 };
 
 const Editar = async (Codigo, Datos) => {
