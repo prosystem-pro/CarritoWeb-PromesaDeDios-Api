@@ -54,6 +54,27 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
 };
 
 const Crear = async (Datos) => {
+  if (!Datos.NombreClasificacionProducto || Datos.NombreClasificacionProducto.trim() === '') {
+    let contador = 1;
+    let nombreGenerado = `Nombre por defecto ${contador}`;
+    let existe = true;
+
+    while (existe) {
+      const registroExistente = await Modelo.findOne({
+        where: { NombreClasificacionProducto: nombreGenerado }
+      });
+
+      if (registroExistente) {
+        contador++;
+        nombreGenerado = `Nombre por defecto ${contador}`;
+      } else {
+        existe = false;
+      }
+    }
+
+    Datos.NombreClasificacionProducto = nombreGenerado;
+  }
+
   const Nuevo = await Modelo.create(Datos);
   const Dato = Nuevo.toJSON();
 
@@ -63,6 +84,7 @@ const Crear = async (Datos) => {
 
   return Dato;
 };
+
 
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
