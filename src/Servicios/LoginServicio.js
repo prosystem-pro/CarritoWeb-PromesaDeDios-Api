@@ -74,10 +74,7 @@ const { ObtenerPermisosFrontEnd } = require('../Servicios/PermisoRolRecursoServi
 // };
 
 const IniciarSesionServicio = async (NombreUsuario, Clave) => {
-  console.log('Inicio IniciarSesionServicio');
-  console.log('Datos recibidos:', { NombreUsuario, Clave: Clave ? '***' : null });
-
-  if (!NombreUsuario || !Clave) {
+   if (!NombreUsuario || !Clave) {
     console.error("Error: Nombre de usuario y contraseña son requeridos");
     LanzarError("Nombre de usuario y contraseña son requeridos", 400);
   }
@@ -98,15 +95,12 @@ const IniciarSesionServicio = async (NombreUsuario, Clave) => {
     ]
   });
 
-  console.log('Usuario encontrado:', Usuario);
-
   if (!Usuario) {
     console.error("Error: Usuario o contraseña incorrectos (no se encontró usuario)");
     LanzarError("Usuario o contraseña incorrectos", 400);
   }
 
   const Valida = await CompararClaves(Clave, Usuario.ClaveHash);
-  console.log('Validación de contraseña:', Valida);
 
   if (!Valida) {
     console.error("Error: Usuario o contraseña incorrectos (contraseña inválida)");
@@ -114,7 +108,6 @@ const IniciarSesionServicio = async (NombreUsuario, Clave) => {
   }
 
   if (Usuario.SuperAdmin === 1) {
-    console.log('Usuario es SuperAdmin');
     const Token = GenerarToken({
       CodigoUsuario: Usuario.CodigoUsuario,
       CodigoRol: null,
@@ -152,7 +145,6 @@ const IniciarSesionServicio = async (NombreUsuario, Clave) => {
   }
 
   const permisos = await ObtenerPermisosFrontEnd(Usuario.CodigoRol);
-  console.log('Permisos obtenidos:', permisos);
 
   const Token = GenerarToken({
     CodigoUsuario: Usuario.CodigoUsuario,
@@ -163,8 +155,6 @@ const IniciarSesionServicio = async (NombreUsuario, Clave) => {
     AccesoCompleto: false,
     Permisos: permisos.Recursos
   });
-
-  console.log('Token generado, finalizando login');
 
   return {
     Token,

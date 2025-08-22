@@ -132,7 +132,6 @@ const SubirImagen = async (req, res) => {
       Datos[NombreCampoImagen] = RutaRelativa;
       Entidad = await Servicio.Crear(Datos);
     }
-
     // === SI LLEGA HASTA AQUÍ, LA EDICIÓN FUE EXITOSA Y PODEMOS BORRAR LA ANTERIOR ===
     if (EstaEditando && ImagenAnterior) {
       await EliminarImagen(ImagenAnterior);

@@ -28,22 +28,24 @@ const Listado = async (Anio) => {
       Dato.FechaVencimientoPago = fecha.toISODate(); // YYYY-MM-DD
     }
 
+    if (Dato.UrlComprobante) {
+      Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
+    }
     return Dato;
   });
 };
+
 
 const ObtenerPorCodigo = async (Codigo) => {
   const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
   if (!Registro) LanzarError('Registro no encontrado', 404);
 
   const Dato = Registro.toJSON();
-
-  if (Dato.UrlComprobante) {
-    Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
-  }
+  if (Dato.UrlComprobante) Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
 
   return Dato;
 };
+
 
 const Buscar = async (TipoBusqueda, ValorBusqueda) => {
   switch (parseInt(TipoBusqueda)) {
@@ -65,12 +67,10 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
 };
 
 const Crear = async (Datos) => {
-  const Objeto = await Modelo.create(Datos);
-  const Dato = Objeto.toJSON();
+  const Nuevo = await Modelo.create(Datos);
+  const Dato = Nuevo.toJSON();
 
-  if (Dato.UrlComprobante) {
-    Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
-  }
+  Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
 
   return Dato;
 };
@@ -83,9 +83,7 @@ const Editar = async (Codigo, Datos) => {
 
   const Dato = Objeto.toJSON();
 
-  if (Dato.UrlComprobante) {
-    Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
-  }
+  Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
 
   return Dato;
 };
@@ -94,7 +92,9 @@ const Eliminar = async (Codigo) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
   if (!Objeto) LanzarError('Registro no encontrado para eliminar', 404);
 
-  const CamposImagen = ['UrlComprobante'];
+  const CamposImagen = [
+    'UrlComprobante'
+  ];
 
   for (const campo of CamposImagen) {
     const urlOriginal = Objeto[campo];
@@ -103,11 +103,10 @@ const Eliminar = async (Codigo) => {
       try {
         await EliminarImagen(urlConstruida);
       } catch {
-        // Ignorar error para no bloquear eliminación
+
       }
     }
   }
-
   await Objeto.destroy();
   return Objeto;
 };
