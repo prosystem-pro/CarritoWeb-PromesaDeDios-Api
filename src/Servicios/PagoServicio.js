@@ -28,10 +28,6 @@ const Listado = async (Anio) => {
       Dato.FechaVencimientoPago = fecha.toISODate(); // YYYY-MM-DD
     }
 
-    if (Dato.UrlComprobante) {
-      Dato.UrlComprobante = ConstruirUrlImagen(Dato.UrlComprobante);
-    }
-
     return Dato;
   });
 };

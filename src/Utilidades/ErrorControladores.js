@@ -14,11 +14,19 @@ const ManejarError = (error, res, mensajeError = 'Error inesperado', statusCodeD
 
   console.error('Error detectado:', DetallesError);
 
-  const respuesta = {
+  // const respuesta = {
+  //   success: false,
+  //   tipo,
+  //   message: mensajeError,
+  //   ...(Desarrollo && { error: DetallesError }) 
+  // };
+    const respuesta = {
     success: false,
     tipo,
     message: mensajeError,
-    ...(Desarrollo && { error: DetallesError }) 
+    error: Desarrollo 
+      ? DetallesError          
+      : { message: mensajeError } 
   };
 
   return res.status(statusCode).json(respuesta);

@@ -3,11 +3,11 @@ const BaseDatos = require('../BaseDatos/ConexionBaseDatos');
 const Modelo = require('../Modelos/Empresa')(BaseDatos, Sequelize.DataTypes);
 const { LanzarError } = require('../Utilidades/ErrorServicios');
 
-const NombreModelo= 'NombreEmpresa';
-const CodigoModelo= 'CodigoEmpresa'
+const NombreModelo = 'NombreEmpresa';
+const CodigoModelo = 'CodigoEmpresa'
 
 const Listado = async () => {
-  return await Modelo.findAll({ where: { Estatus: [1,2] } });
+  return await Modelo.findAll({ where: { Estatus: [1, 2] } });
 };
 
 const ObtenerPorCodigo = async (Codigo) => {
@@ -20,20 +20,18 @@ const Buscar = async (TipoBusqueda, ValorBusqueda) => {
   switch (parseInt(TipoBusqueda)) {
     case 1:
       return await Modelo.findAll({
-        where: { [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` }, Estatus: [1,2] }
+        where: { [NombreModelo]: { [Sequelize.Op.like]: `%${ValorBusqueda}%` }, Estatus: [1, 2] }
       });
     case 2:
-      return await Modelo.findAll({ where: { Estatus: [1,2] }, order: [[NombreModelo, 'ASC']] });
+      return await Modelo.findAll({ where: { Estatus: [1, 2] }, order: [[NombreModelo, 'ASC']] });
     default:
       LanzarError('Tipo de búsqueda inválido', 400);
   }
 };
-
 const Crear = async (Datos) => {
-  const yaExiste = await Modelo.findOne({ where: { [CodigoModelo]: Datos[CodigoModelo] } });
-  if (yaExiste) LanzarError('Ya existe un registro con ese código', 409);
   return await Modelo.create(Datos);
 };
+
 
 const Editar = async (Codigo, Datos) => {
   const Objeto = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
