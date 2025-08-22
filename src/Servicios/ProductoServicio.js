@@ -9,22 +9,35 @@ const { LanzarError } = require('../Utilidades/ErrorServicios');
 const NombreModelo = 'NombreProducto';
 const CodigoModelo = 'CodigoProducto';
 
-const Listado = async (Usuario) => {
-  let estatusPermitido = [1];
-  if (Usuario && (Usuario.NombreRol === 'Administrador' || Usuario.SuperAdmin === 1)) {
-    estatusPermitido = [1, 2];
-  }
+// const Listado = async (Usuario) => {
+//   let estatusPermitido = [1];
+//   if (Usuario && (Usuario.NombreRol === 'Administrador' || Usuario.SuperAdmin === 1)) {
+//     estatusPermitido = [1, 2];
+//   }
 
+//   const Registros = await Modelo.findAll({
+//     where: { Estatus: estatusPermitido }
+//   });
+
+//   return Registros.map(r => {
+//     const Dato = r.toJSON();
+//     Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
+//     return Dato;
+//   });
+// };
+const Listado = async (Usuario) => {
   const Registros = await Modelo.findAll({
-    where: { Estatus: estatusPermitido }
+    where: { Estatus: [1, 2] }  // trae todos los productos activos e inactivos
   });
 
   return Registros.map(r => {
     const Dato = r.toJSON();
     Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
+    console.log('datos',Dato)
     return Dato;
   });
 };
+
 
 const ObtenerPorCodigo = async (Codigo) => {
   const Registro = await Modelo.findOne({ where: { [CodigoModelo]: Codigo } });
@@ -139,6 +152,7 @@ const ListadoPorClasificacion = async (Codigo) => {
   return Registros.map(r => {
     const Dato = r.toJSON();
     Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
+    console.log('datosss',Dato)
     return Dato;
   });
 };
