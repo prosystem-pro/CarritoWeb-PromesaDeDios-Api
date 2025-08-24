@@ -10,8 +10,7 @@ const EliminarImagen = async (UrlImagen) => {
 
     await Almacenamiento.file(Ruta).delete();
   } catch (error) {
-    console.error("Error al eliminar imagen:", error);
-    LanzarError('Error al eliminar imagen del almacenamiento', 500, 'Error');
+
   }
 };
 
