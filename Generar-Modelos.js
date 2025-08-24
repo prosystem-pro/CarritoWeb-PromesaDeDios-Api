@@ -24,5 +24,4 @@ auto.run((err) => {
     console.error('❌ Error al generar modelos:', err);
     process.exit(1);
   }
-  console.log('✅ Modelos generados correctamente.');
 });

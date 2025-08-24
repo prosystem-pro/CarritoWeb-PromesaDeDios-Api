@@ -33,7 +33,6 @@ const Listado = async (Usuario) => {
   return Registros.map(r => {
     const Dato = r.toJSON();
     Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
-    console.log('datos',Dato)
     return Dato;
   });
 };
@@ -152,7 +151,6 @@ const ListadoPorClasificacion = async (Codigo) => {
   return Registros.map(r => {
     const Dato = r.toJSON();
     Dato.UrlImagen = ConstruirUrlImagen(Dato.UrlImagen);
-    console.log('datosss',Dato)
     return Dato;
   });
 };

@@ -34,6 +34,7 @@ const PortadaOtroRuta = require("./Rutas/PortadaOtroRuta");
 const PermisosTablasDisponibles = require("./Rutas/PermisosTablasDisponiblesRuta");
 const Pago = require("./Rutas/PagoRuta");
 const ResumenGeneralPago = require("./Rutas/EstadoTecnicoEmpresaRuta");
+const InformacionBd_Ruta = require("./Rutas/InformacionBd_Ruta");
 
 const Login = require("./Rutas/LoginRuta");
 const Ruter = 'api';
@@ -78,6 +79,7 @@ App.use(`/${Ruter}`, PortadaOtroRuta);
 App.use(`/${Ruter}`, PermisosTablasDisponibles);
 App.use(`/${Ruter}`, Pago);
 App.use(`/${Ruter}`, ResumenGeneralPago);
+App.use(`/${Ruter}`, InformacionBd_Ruta);
 
 App.use(`/${Ruter}`, ModelosTypescriptRuta);
 App.use(`/${Ruter}`, SubirImagenRuta);
