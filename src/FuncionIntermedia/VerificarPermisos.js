@@ -1,6 +1,5 @@
 const { ObtenerPermisosPorRolYRecurso } = require('../Servicios/PermisoPorRolRecursoServicio');
 const ManejarError = require('../Utilidades/ErrorControladores');
-const { LanzarError } = require('../Utilidades/ErrorServicios');
 
 const VerificarPermisos = (Permiso, Recurso) => {
   return async (req, res, next) => {
@@ -10,7 +9,6 @@ const VerificarPermisos = (Permiso, Recurso) => {
       if (SuperAdmin === 1) {
         return next();
       }
-
       if (!CodigoRol) {
         return res.status(403).json({ error: 'No autorizado, rol no proporcionado' });
       }
